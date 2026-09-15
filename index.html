@@ -958,28 +958,40 @@
 
         // Gửi lệnh IR
         function sendCommand() {
-            let irCode;
-            let codeKey;
-            
             if (!powerStatus) {
                 // Khi OFF, gửi mã off
-                irCode = currentDevice.code.off;
-                codeKey = 'off';
+                sendIRCode('off', currentDevice.code.off);
             } else {
-                // Khi ON, gửi mã hiện tại theo setup
-                codeKey = `s_${selectedSpeed}__m_${selectedMode}__t_${selectedTemp}`;
-                irCode = currentDevice.code[codeKey];
+                // Khi ON, gửi mã on trước, rồi gửi mã theo status
+                const onCode = currentDevice.code.on;
+                const statusCode = currentDevice.code[`s_${selectedSpeed}__m_${selectedMode}__t_${selectedTemp}`];
+                
+                // Bắn mã on nếu có
+                if (onCode && onCode.trim() !== "") {
+                    sendIRCode('on', onCode);
+                }
+                
+                // Bắn mã theo status nếu có
+                if (statusCode && statusCode.trim() !== "") {
+                    // Delay nhỏ để bắn on trước
+                    setTimeout(() => {
+                        sendIRCode('status', statusCode);
+                    }, 100);
+                }
             }
-            
+        }
+        
+        // Hàm bắn mã IR
+        function sendIRCode(type, irCode) {
             if (!irCode || irCode.trim() === "") {
-                console.log('Không có mã IR cho:', codeKey);
+                console.log('Không có mã IR cho:', type);
                 return;
             }
             
-            try { 
+            try {
                 // Loại bỏ khoảng trắng trong mã IR
                 const cleanCode = irCode.replace(/\s+/g, '');
-                const url = `http://192.168.1.123/remote-ir?code=[${cleanCode}]`;
+                const url = `http://192.168.11.123/remote-ir?code=[${cleanCode}]`;
                 
                 // Bắn đi, không chờ response, không quan tâm
                 fetch(url).catch(() => {});
