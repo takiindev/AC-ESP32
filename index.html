@@ -442,7 +442,7 @@
         <div class="config-section" style="display: none;">
             <h3>Cấu hình JSON</h3>
             <div class="config-input">
-                <input type="text" id="configUrl" placeholder="Nhập URL của file config.con" value="https://raw.githubusercontent.com/takiindev/AC-ESP32/main/config.con">
+                <input type="text" id="configUrl" placeholder="Nhập URL của file config.json" value="https://raw.githubusercontent.com/takiindev/AC-ESP32/main/config.json">
                 <button class="btn btn-primary" onclick="loadConfig()">Tải Config</button>
             </div>
             <div style="margin-bottom: 10px;">
@@ -618,18 +618,18 @@
 
         // Quick config loading functions
         function loadGitHubConfig() {
-            document.getElementById('configUrl').value = 'https://raw.githubusercontent.com/takiindev/AC-ESP32/main/config.con';
+            document.getElementById('configUrl').value = 'https://raw.githubusercontent.com/takiindev/AC-ESP32/main/config.json';
             loadConfig();
         }
 
         function loadLocalConfig() {
-            document.getElementById('configUrl').value = './config.con';
+            document.getElementById('configUrl').value = './config.json';
             loadConfig();
         }
 
         // Tải config từ URL hoặc file
         async function loadConfig() {
-            const configUrl = document.getElementById('configUrl').value || 'https://raw.githubusercontent.com/takiindev/AC-ESP32/main/config.con';
+            const configUrl = document.getElementById('configUrl').value || './config.json';
             const statusEl = document.getElementById('configStatus');
             
             statusEl.className = 'status info';
@@ -664,17 +664,19 @@
                     configText = await response.text();
                 }
                 
-                // Xử lý format JavaScript object literal
-                let jsonText = configText
-                    .replace(/^\s*/, '') // Loại bỏ khoảng trắng đầu
-                    .replace(/\s*$/, '') // Loại bỏ khoảng trắng cuối
-                    .replace(/(\w+)\s*:/g, '"$1":') // Thêm quotes cho keys (word + colon)
-                    .replace(/'/g, '"'); // Đổi single quotes thành double quotes
-
-                console.log('Original config:', configText.substring(0, 200) + '...');
-                console.log('Converted JSON:', jsonText.substring(0, 200) + '...');
-
-                configData = JSON.parse(jsonText);
+                // Nếu là JSON sạch, parse trực tiếp. Nếu là object literal, chuyển đổi
+                let jsonText = configText;
+                try {
+                    configData = JSON.parse(jsonText);
+                } catch (e) {
+                    // Thử chuyển đổi object literal thành JSON
+                    jsonText = configText
+                        .replace(/^\s*/, '')
+                        .replace(/\s*$/, '')
+                        .replace(/(\w+)\s*:/g, '"$1":')
+                        .replace(/'/g, '"');
+                    configData = JSON.parse(jsonText);
+                }
                 
                 if (!Array.isArray(configData) || configData.length === 0) {
                     throw new Error('Config không hợp lệ hoặc rỗng');
@@ -991,7 +993,7 @@
             try {
                 // Loại bỏ khoảng trắng trong mã IR
                 const cleanCode = irCode.replace(/\s+/g, '');
-                const url = `http://192.168.11.123/remote-ir?code=[${cleanCode}]`;
+                const url = `http://172.16.65.111/remote-ir?code=[${cleanCode}]`;
                 
                 // Bắn đi, không chờ response, không quan tâm
                 fetch(url).catch(() => {});
@@ -1006,10 +1008,10 @@
             document.getElementById('deviceList').style.display = 'block';
         }
 
-        // Auto-load GitHub config khi trang tải
+        // Auto-load config khi trang tải
         window.onload = function() {
-            // Tự động tải config từ GitHub
-            loadGitHubConfig();
+            // Tự động tải config từ file local
+            loadLocalConfig();
         };
     </script>
 </body>
